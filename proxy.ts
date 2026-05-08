@@ -1,43 +1,31 @@
 import { NextResponse, type NextRequest } from 'next/server'
-import { updateSession } from './lib/supabase/middleware'
+import { createServerClient } from '@supabase/ssr'
 
 export async function proxy(request: NextRequest) {
-  const { supabaseResponse, user, supabase } = await updateSession(request)
-  const { pathname } = request.nextUrl
+  let supabaseResponse = NextResponse.next({ request })
 
-  const isPublic =
-    pathname === '/' ||
-    pathname.startsWith('/auth/callback') ||
-    pathname.startsWith('/api/')
-
-  if (!user && !isPublic) {
-    return NextResponse.redirect(new URL('/', request.url))
-  }
-
-  if (user && pathname === '/' && request.method === 'GET') {
-    return NextResponse.redirect(new URL('/dashboard', request.url))
-  }
-
-  if (user && pathname.startsWith('/dashboard')) {
-    const { data: profile } = await supabase
-      .from('users')
-      .select('role, is_active')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile || !profile.is_active) {
-      await supabase.auth.signOut()
-      return NextResponse.redirect(new URL('/', request.url))
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll()
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) =>
+            request.cookies.set(name, value)
+          )
+          supabaseResponse = NextResponse.next({ request })
+          cookiesToSet.forEach(({ name, value, options }) =>
+            supabaseResponse.cookies.set(name, value, options)
+          )
+        },
+      },
     }
+  )
 
-    const role = profile.role
-
-    if (pathname.startsWith('/dashboard/logs') || pathname.startsWith('/dashboard/users')) {
-      if (role !== 'master_admin') {
-        return NextResponse.redirect(new URL('/dashboard', request.url))
-      }
-    }
-  }
+  await supabase.auth.getUser()
 
   return supabaseResponse
 }
