@@ -28,6 +28,11 @@ export default function LoginPage() {
       return
     }
 
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) {
+      await new Promise(r => setTimeout(r, 500))
+    }
+
     router.push('/dashboard')
     router.refresh()
   }
