@@ -5,14 +5,16 @@ export async function proxy(request: NextRequest) {
   const { supabaseResponse, user, supabase } = await updateSession(request)
   const { pathname } = request.nextUrl
 
-  const publicPaths = ['/', '/auth/callback', '/api/auth/login']
-  const isPublic = publicPaths.some(p => pathname.startsWith(p))
+  const isPublic =
+    pathname === '/' ||
+    pathname.startsWith('/auth/callback') ||
+    pathname.startsWith('/api/')
 
   if (!user && !isPublic) {
     return NextResponse.redirect(new URL('/', request.url))
   }
 
-  if (user && isPublic && pathname === '/') {
+  if (user && pathname === '/' && request.method === 'GET') {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
