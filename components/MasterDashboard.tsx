@@ -197,6 +197,13 @@ export default function MasterDashboard() {
           </div>
         </div>
       )}
+
+      <button
+        onClick={() => window.open('/api/analytics/export', '_blank')}
+        className="w-full border border-primary text-primary rounded-xl py-3 text-sm font-medium hover:bg-accent transition-colors"
+      >
+        Export Analytics CSV
+      </button>
     </div>
   )
 }

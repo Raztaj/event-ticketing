@@ -149,12 +149,18 @@ CREATE TRIGGER trg_tickets_updated_at
   FOR EACH ROW
   EXECUTE FUNCTION update_tickets_updated_at();
 
--- 8. RLS: IMMUTABLE LOGS — prevent any UPDATE or DELETE on activity_logs
+-- 8. RLS: IMMUTABLE LOGS — prevent UPDATE/DELETE on activity_logs (master_admin can bypass)
 CREATE OR REPLACE FUNCTION prevent_log_mutation()
 RETURNS TRIGGER
 LANGUAGE plpgsql
 AS $$
 BEGIN
+  IF EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role = 'master_admin') THEN
+    IF TG_OP = 'DELETE' THEN
+      RETURN OLD;
+    END IF;
+    RETURN NEW;
+  END IF;
   RAISE EXCEPTION 'activity_logs are append-only. UPDATE/DELETE not allowed.';
 END;
 $$;
@@ -224,6 +230,12 @@ CREATE POLICY "activity_logs_select_all" ON activity_logs
 -- activity_logs: only the log_activity function can insert
 CREATE POLICY "activity_logs_insert" ON activity_logs
   FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+
+-- activity_logs: only master can delete
+CREATE POLICY "activity_logs_delete_master" ON activity_logs
+  FOR DELETE USING (
+    EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role = 'master_admin')
+  );
 
 -- 11. TRIGGER: auto-create profile in public.users when a user signs up via Supabase Auth
 CREATE OR REPLACE FUNCTION handle_new_user()

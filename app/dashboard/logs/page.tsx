@@ -18,9 +18,23 @@ export default function LogsPage() {
   const [logs, setLogs] = useState<Log[]>([])
   const [loading, setLoading] = useState(true)
   const [actionFilter, setActionFilter] = useState('all')
+  const [isMaster, setIsMaster] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [message, setMessage] = useState('')
   const supabase = createClient()
 
   const loadLogs = async () => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+      const { data: profile } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+      setIsMaster(profile?.role === 'master_admin')
+    }
+
     let query = supabase
       .from('activity_logs')
       .select('*')
@@ -39,6 +53,26 @@ export default function LogsPage() {
   useEffect(() => {
     loadLogs()
   }, [actionFilter])
+
+  const handleDeleteLogs = async () => {
+    setDeleting(true)
+    setMessage('')
+
+    const { error } = await supabase
+      .from('activity_logs')
+      .delete()
+      .neq('id', '00000000-0000-0000-0000-000000000000')
+
+    if (error) {
+      setMessage(`Error: ${error.message}`)
+    } else {
+      setMessage('All activity logs deleted')
+      loadLogs()
+    }
+
+    setDeleting(false)
+    setShowDeleteConfirm(false)
+  }
 
   const exportCSV = () => {
     const headers = ['ID', 'Action', 'Visitor', 'Ticket ID', 'Old Value', 'New Value', 'Date']
@@ -68,13 +102,54 @@ export default function LogsPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-gray-800">Activity Logs</h2>
-        <button
-          onClick={exportCSV}
-          className="text-xs bg-primary text-white px-3 py-1.5 rounded-lg hover:bg-primary-dark transition-colors"
-        >
-          Export CSV
-        </button>
+        <div className="flex gap-2">
+          {isMaster && (
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              className="text-xs border border-red-200 text-red-500 px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors"
+            >
+              Delete All
+            </button>
+          )}
+          <button
+            onClick={exportCSV}
+            className="text-xs bg-primary text-white px-3 py-1.5 rounded-lg hover:bg-primary-dark transition-colors"
+          >
+            Export CSV
+          </button>
+        </div>
       </div>
+
+      {message && (
+        <div className={`text-sm p-3 rounded-lg border ${
+          message.startsWith('Error') ? 'bg-red-50 text-red-700 border-red-200' : 'bg-green-50 text-green-700 border-green-200'
+        }`}>
+          {message}
+          <button onClick={() => setMessage('')} className="float-right font-bold">&times;</button>
+        </div>
+      )}
+
+      {showDeleteConfirm && (
+        <div className="bg-red-50 rounded-xl p-4 border border-red-200 text-center space-y-3">
+          <p className="text-sm font-medium text-red-700">Delete all activity logs?</p>
+          <p className="text-xs text-red-500">This permanently removes all logs. This cannot be undone.</p>
+          <div className="flex gap-2 justify-center">
+            <button
+              onClick={handleDeleteLogs}
+              disabled={deleting}
+              className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors disabled:opacity-50"
+            >
+              {deleting ? 'Deleting...' : 'Yes, Delete All'}
+            </button>
+            <button
+              onClick={() => setShowDeleteConfirm(false)}
+              className="text-gray-500 px-4 py-2 text-sm"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="flex gap-2 overflow-x-auto pb-1">
         {actionTypes.map(a => (
