@@ -136,21 +136,24 @@ export default function ScanPage() {
       )}
 
       {result && (
-        <div className={`rounded-xl p-6 border-2 shadow-sm text-center space-y-2 ${statusColor(result.status)}`}>
-          <div className="text-4xl mb-2">{statusIcon(result.status)}</div>
-          <p className="text-lg font-semibold capitalize">{result.status.replace('_', ' ')}</p>
-          <p className="text-sm opacity-80">{result.message}</p>
-          {result.visitor_name && (
-            <p className="text-sm font-medium mt-1">{result.visitor_name}</p>
-          )}
-          {result.ticket_code && (
-            <p className="text-xs opacity-60">{result.ticket_code}</p>
-          )}
+        <div className={`rounded-xl border-2 shadow-sm text-center ${statusColor(result.status)}`}>
+          <div className="py-8 px-6">
+            <div className="text-5xl mb-3">{statusIcon(result.status)}</div>
+            <p className="text-xl font-bold capitalize mb-1">{result.status.replace('_', ' ')}</p>
+            <p className="text-sm opacity-80">{result.message}</p>
+            {result.visitor_name && (
+              <p className="text-base font-semibold mt-3">{result.visitor_name}</p>
+            )}
+            {result.ticket_code && (
+              <p className="text-xs opacity-60 mt-0.5">{result.ticket_code}</p>
+            )}
+          </div>
+          <div className="border-t border-inherit opacity-20" />
           <button
             onClick={() => { setResult(null) }}
-            className="mt-3 text-sm underline opacity-70 hover:opacity-100"
+            className="w-full py-3 text-sm font-medium hover:opacity-80 transition-opacity"
           >
-            Scan Next
+            Tap to Scan Next
           </button>
         </div>
       )}
