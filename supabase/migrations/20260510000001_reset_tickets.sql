@@ -12,8 +12,9 @@ BEGIN
       checked_in_by = NULL,
       checked_in_at = NULL,
       updated_at = now()
-  WHERE status IN ('checked_in', 'unused')
-  RETURNING COUNT(*) INTO v_count;
+  WHERE status IN ('checked_in', 'unused');
+
+  GET DIAGNOSTICS v_count = ROW_COUNT;
 
   INSERT INTO activity_logs (user_id, action_type, old_value, new_value)
   VALUES (
