@@ -18,6 +18,9 @@ export default function MasterDashboard() {
   const [showResetConfirm, setShowResetConfirm] = useState(false)
   const [resetting, setResetting] = useState(false)
   const [resetMessage, setResetMessage] = useState('')
+  const [showDeleteUnusedConfirm, setShowDeleteUnusedConfirm] = useState(false)
+  const [deletingUnused, setDeletingUnused] = useState(false)
+  const [deleteUnusedMessage, setDeleteUnusedMessage] = useState('')
 
   const loadStats = () => {
     const supabase = createClient()
@@ -51,6 +54,25 @@ export default function MasterDashboard() {
       setResetMessage(`Error: ${data.error}`)
     } else {
       setResetMessage(`All tickets reset to unused (${data.count} tickets)`)
+      loadStats()
+    }
+  }
+
+  const handleDownloadUnused = () => {
+    window.open('/api/tickets/unused/download', '_blank')
+  }
+
+  const handleDeleteUnused = async () => {
+    setDeletingUnused(true)
+    setDeleteUnusedMessage('')
+    const res = await fetch('/api/tickets/unused/delete', { method: 'POST' })
+    const data = await res.json()
+    setDeletingUnused(false)
+    setShowDeleteUnusedConfirm(false)
+    if (!res.ok) {
+      setDeleteUnusedMessage(`Error: ${data.error}`)
+    } else {
+      setDeleteUnusedMessage(`${data.count} unused tickets deleted`)
       loadStats()
     }
   }
@@ -127,6 +149,53 @@ export default function MasterDashboard() {
         >
           Reset All Tickets for New Event
         </button>
+      )}
+
+      <div className="flex gap-2">
+        <button
+          onClick={handleDownloadUnused}
+          className="flex-1 border border-primary text-primary rounded-xl py-3 text-sm font-medium hover:bg-accent transition-colors"
+        >
+          Download Unused ({stats.unused})
+        </button>
+        <button
+          onClick={() => setShowDeleteUnusedConfirm(true)}
+          disabled={stats.unused === 0}
+          className="flex-1 border border-red-200 text-red-500 rounded-xl py-3 text-sm font-medium hover:bg-red-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          Delete Unused ({stats.unused})
+        </button>
+      </div>
+
+      {deleteUnusedMessage && (
+        <div className={`text-sm p-3 rounded-lg border ${
+          deleteUnusedMessage.startsWith('Error') ? 'bg-red-50 text-red-700 border-red-200' : 'bg-green-50 text-green-700 border-green-200'
+        }`}>
+          {deleteUnusedMessage}
+          <button onClick={() => setDeleteUnusedMessage('')} className="float-right font-bold">&times;</button>
+        </div>
+      )}
+
+      {showDeleteUnusedConfirm && (
+        <div className="bg-red-50 rounded-xl p-4 border border-red-200 text-center space-y-3">
+          <p className="text-sm font-medium text-red-700">Delete all unused tickets?</p>
+          <p className="text-xs text-red-500">This permanently removes {stats.unused} unused tickets. This cannot be undone.</p>
+          <div className="flex gap-2 justify-center">
+            <button
+              onClick={handleDeleteUnused}
+              disabled={deletingUnused}
+              className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors disabled:opacity-50"
+            >
+              {deletingUnused ? 'Deleting...' : 'Yes, Delete All'}
+            </button>
+            <button
+              onClick={() => setShowDeleteUnusedConfirm(false)}
+              className="text-gray-500 px-4 py-2 text-sm"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
       )}
     </div>
   )
