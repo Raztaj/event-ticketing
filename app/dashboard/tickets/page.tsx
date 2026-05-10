@@ -124,6 +124,37 @@ export default function TicketsPage() {
     loadTickets()
   }
 
+  const handleDelete = async (ticketId: string) => {
+    const confirmed = confirm('Delete this ticket permanently? This cannot be undone.')
+    if (!confirmed) return
+
+    const ticket = tickets.find(t => t.id === ticketId)
+    if (!ticket) return
+
+    const { error } = await supabase
+      .from('tickets')
+      .delete()
+      .eq('id', ticketId)
+
+    if (error) {
+      setMessage(`Error: ${error.message}`)
+      return
+    }
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+      await supabase.rpc('log_activity', {
+        p_user_id: user.id,
+        p_action_type: 'ticket_deleted',
+        p_ticket_id: ticketId,
+        p_visitor_name: ticket.visitor_name,
+      })
+    }
+
+    setMessage('Ticket deleted')
+    loadTickets()
+  }
+
   const statusBadge = (s: string) => {
     switch (s) {
       case 'unused': return 'bg-green-50 text-green-600 border-green-200'
@@ -221,12 +252,20 @@ export default function TicketsPage() {
                   {new Date(t.created_at).toLocaleDateString()}
                 </span>
                 {isMaster && t.status === 'unused' && (
-                  <button
-                    onClick={() => handleRevoke(t.id)}
-                    className="text-xs text-red-400 hover:text-red-600"
-                  >
-                    Revoke
-                  </button>
+                  <>
+                    <button
+                      onClick={() => handleRevoke(t.id)}
+                      className="text-xs text-red-400 hover:text-red-600"
+                    >
+                      Revoke
+                    </button>
+                    <button
+                      onClick={() => handleDelete(t.id)}
+                      className="text-xs text-red-600 hover:text-red-800 font-medium ml-2"
+                    >
+                      Delete
+                    </button>
+                  </>
                 )}
               </div>
             </div>

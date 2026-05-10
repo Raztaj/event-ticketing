@@ -211,6 +211,12 @@ CREATE POLICY "tickets_update_master" ON tickets
     EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role = 'master_admin')
   );
 
+-- tickets: only master can delete
+CREATE POLICY "tickets_delete_master" ON tickets
+  FOR DELETE USING (
+    EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role = 'master_admin')
+  );
+
 -- activity_logs: all authenticated can read logs
 CREATE POLICY "activity_logs_select_all" ON activity_logs
   FOR SELECT USING (auth.role() = 'authenticated');

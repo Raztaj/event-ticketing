@@ -77,11 +77,57 @@ export default function CreateTicketPage() {
     setLoading(false)
   }
 
-  const handleDownloadPNG = () => {
+  const handleDownloadPNG = async () => {
     if (!qrDataUrl || !ticket) return
+
+    let logoDataUrl = ''
+    try {
+      const resp = await fetch('/logo.svg')
+      const svg = await resp.text()
+      const m = svg.match(/xlink:href="([^"]+)"/)
+      if (m) logoDataUrl = m[1]
+    } catch {}
+
+    const canvas = document.createElement('canvas')
+    canvas.width = 400
+    canvas.height = 560
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+
+    ctx.fillStyle = '#FFFFFF'
+    ctx.fillRect(0, 0, canvas.width, canvas.height)
+
+    if (logoDataUrl) {
+      const logo = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const img = new Image()
+        img.onload = () => resolve(img)
+        img.onerror = reject
+        img.src = logoDataUrl
+      })
+      ctx.drawImage(logo, (canvas.width - 120) / 2, 20, 120, 120)
+    }
+
+    ctx.fillStyle = '#999'
+    ctx.font = '14px sans-serif'
+    ctx.textAlign = 'center'
+    ctx.fillText(ticket.ticket_code, canvas.width / 2, logoDataUrl ? 160 : 30)
+
+    ctx.fillStyle = '#333'
+    ctx.font = 'bold 24px sans-serif'
+    ctx.fillText(ticket.visitor_name, canvas.width / 2, logoDataUrl ? 200 : 70)
+
+    const qrImg = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const img = new Image()
+      img.onload = () => resolve(img)
+      img.onerror = reject
+      img.src = qrDataUrl
+    })
+    const qrSize = 300
+    ctx.drawImage(qrImg, (canvas.width - qrSize) / 2, logoDataUrl ? 240 : 90, qrSize, qrSize)
+
     const link = document.createElement('a')
     link.download = `${ticket.ticket_code}-${ticket.visitor_name.replace(/\s+/g, '_')}.png`
-    link.href = qrDataUrl
+    link.href = canvas.toDataURL('image/png')
     link.click()
   }
 
@@ -89,16 +135,28 @@ export default function CreateTicketPage() {
     if (!qrDataUrl || !ticket) return
     const { default: jsPDF } = await import('jspdf')
     const pdf = new jsPDF('portrait', 'mm', 'a6')
-    const imgData = qrDataUrl
     const pageWidth = pdf.internal.pageSize.getWidth()
     const qrSize = 60
     const x = (pageWidth - qrSize) / 2
-    let y = 20
+    let y = 15
 
-    pdf.setFontSize(12)
-    pdf.setTextColor(217, 74, 74)
-    pdf.text('Easily', pageWidth / 2, y, { align: 'center' })
-    y += 8
+    let logoDataUrl = ''
+    try {
+      const resp = await fetch('/logo.svg')
+      const svg = await resp.text()
+      const m = svg.match(/xlink:href="([^"]+)"/)
+      if (m) logoDataUrl = m[1]
+    } catch {}
+
+    if (logoDataUrl) {
+      pdf.addImage(logoDataUrl, 'JPEG', (pageWidth - 40) / 2, y, 40, 40)
+      y += 42
+    } else {
+      pdf.setFontSize(12)
+      pdf.setTextColor(217, 74, 74)
+      pdf.text('Easily', pageWidth / 2, y, { align: 'center' })
+      y += 8
+    }
 
     pdf.setFontSize(10)
     pdf.setTextColor(0, 0, 0)
@@ -107,7 +165,7 @@ export default function CreateTicketPage() {
     pdf.text(`Visitor: ${ticket.visitor_name}`, pageWidth / 2, y, { align: 'center' })
     y += 8
 
-    pdf.addImage(imgData, 'PNG', x, y, qrSize, qrSize)
+    pdf.addImage(qrDataUrl, 'PNG', x, y, qrSize, qrSize)
 
     pdf.save(`${ticket.ticket_code}-${ticket.visitor_name.replace(/\s+/g, '_')}.pdf`)
   }
@@ -129,6 +187,7 @@ export default function CreateTicketPage() {
         <h2 className="text-lg font-semibold text-gray-800">Ticket Created</h2>
 
         <div className="bg-white rounded-xl p-6 border border-primary-light shadow-sm text-center space-y-3">
+          <img src="/logo.svg" alt="Easily" className="mx-auto w-32 h-32 object-contain" />
           <p className="text-sm text-gray-400">{ticket.ticket_code}</p>
           <p className="text-xl font-semibold text-gray-800">{ticket.visitor_name}</p>
           <img src={qrDataUrl} alt="QR Code" className="mx-auto w-48 h-48" />
@@ -136,13 +195,13 @@ export default function CreateTicketPage() {
 
         <div className="flex gap-3">
           <button
-            onClick={() => { handleDownloadPNG(); logReissue() }}
+            onClick={async () => { await handleDownloadPNG(); logReissue() }}
             className="flex-1 bg-primary text-white py-2.5 rounded-lg text-sm font-medium hover:bg-primary-dark transition-colors"
           >
             Download PNG
           </button>
           <button
-            onClick={() => { handleDownloadPDF(); logReissue() }}
+            onClick={async () => { await handleDownloadPDF(); logReissue() }}
             className="flex-1 bg-white text-primary border border-primary py-2.5 rounded-lg text-sm font-medium hover:bg-accent transition-colors"
           >
             Download PDF
