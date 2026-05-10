@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 
 const actions = [
   { href: '/dashboard/create', label: 'Create Ticket', icon: '＋' },
+  { href: '/dashboard/bulk', label: 'Bulk Import', icon: '⊞' },
   { href: '/dashboard/scan', label: 'Scan QR', icon: '◈' },
   { href: '/dashboard/search', label: 'Find Ticket', icon: '◎' },
   { href: '/dashboard/tickets', label: 'All Tickets', icon: '▤' },
@@ -15,6 +16,7 @@ const actions = [
 
 export default function MasterDashboard() {
   const [stats, setStats] = useState({ total: 0, checkedIn: 0, unused: 0, revoked: 0 })
+  const [dailyData, setDailyData] = useState<{ date: string; count: number }[]>([])
   const [showResetConfirm, setShowResetConfirm] = useState(false)
   const [resetting, setResetting] = useState(false)
   const [resetMessage, setResetMessage] = useState('')
@@ -37,6 +39,11 @@ export default function MasterDashboard() {
         revoked: revoked.count ?? 0,
       })
     })
+
+    fetch('/api/analytics/stats')
+      .then(r => r.json())
+      .then(d => { if (d.daily) setDailyData(d.daily) })
+      .catch(() => {})
   }
 
   useEffect(() => {
@@ -99,6 +106,29 @@ export default function MasterDashboard() {
           <p className="text-xs text-gray-400">Revoked</p>
         </div>
       </div>
+
+      {dailyData.length > 0 && (
+        <div className="bg-white rounded-xl p-4 border border-primary-light shadow-sm">
+          <p className="text-xs font-medium text-gray-500 mb-3">Check-ins (Last 7 Days)</p>
+          <div className="flex items-end gap-1.5 h-24">
+            {dailyData.map(d => {
+              const max = Math.max(...dailyData.map(x => x.count), 1)
+              const h = (d.count / max) * 100
+              const day = d.date.slice(5)
+              return (
+                <div key={d.date} className="flex-1 flex flex-col items-center gap-1">
+                  <span className="text-xs font-medium text-primary">{d.count}</span>
+                  <div
+                    className="w-full bg-primary/20 rounded-t"
+                    style={{ height: `${Math.max(h, 4)}%` }}
+                  />
+                  <span className="text-[10px] text-gray-400">{day}</span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-3">
         {actions.map(a => (

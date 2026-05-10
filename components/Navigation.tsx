@@ -13,6 +13,7 @@ const staffLinks = [
 const masterLinks = [
   { href: '/dashboard', label: 'Home', icon: '◉' },
   { href: '/dashboard/create', label: 'Create', icon: '＋' },
+  { href: '/dashboard/bulk', label: 'Bulk', icon: '⊞' },
   { href: '/dashboard/scan', label: 'Scan', icon: '◈' },
   { href: '/dashboard/search', label: 'Search', icon: '◎' },
   { href: '/dashboard/tickets', label: 'Tickets', icon: '▤' },
