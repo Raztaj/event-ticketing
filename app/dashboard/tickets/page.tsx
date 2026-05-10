@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import QRCode from 'qrcode'
 
 type Ticket = {
   id: string
@@ -23,6 +24,7 @@ export default function TicketsPage() {
   const [editName, setEditName] = useState('')
   const [message, setMessage] = useState('')
   const [isMaster, setIsMaster] = useState(false)
+  const [pdfLoading, setPdfLoading] = useState(false)
   const supabase = createClient()
 
   const loadTickets = async () => {
@@ -155,6 +157,78 @@ export default function TicketsPage() {
     loadTickets()
   }
 
+  const handleDownloadAllPDF = async () => {
+    if (tickets.length === 0) return
+    if (tickets.length > 500 && !confirm(`This will generate a PDF with ${tickets.length} pages. May be slow on large numbers. Continue?`)) return
+
+    setPdfLoading(true)
+    setMessage('')
+
+    let logoDataUrl = ''
+    try {
+      const resp = await fetch('/logo.svg')
+      const svg = await resp.text()
+      const m = svg.match(/xlink:href="([^"]+)"/)
+      if (m) logoDataUrl = m[1]
+    } catch {}
+
+    const { default: jsPDF } = await import('jspdf')
+
+    const pageSize = 'a6'
+    const qrSize = 50
+    const logoSize = 30
+    const marginX = 10
+
+    const qrPromises = tickets.map(t =>
+      QRCode.toDataURL(t.id, { width: 200, margin: 1, color: { dark: '#D94A4A', light: '#FFFFFF' } })
+    )
+    const qrDataUrls = await Promise.all(qrPromises)
+
+    const pdf = new jsPDF('portrait', 'mm', pageSize)
+    const pageW = pdf.internal.pageSize.getWidth()
+
+    for (let i = 0; i < tickets.length; i++) {
+      if (i > 0) pdf.addPage()
+
+      const t = tickets[i]
+      let y = 15
+
+      if (logoDataUrl) {
+        pdf.addImage(logoDataUrl, 'JPEG', (pageW - logoSize) / 2, y, logoSize, logoSize)
+        y += logoSize + 6
+      }
+
+      pdf.setFontSize(9)
+      pdf.setTextColor(153, 153, 153)
+      pdf.text(t.ticket_code, pageW / 2, y, { align: 'center' })
+      y += 5
+
+      pdf.setFontSize(11)
+      pdf.setTextColor(0, 0, 0)
+      pdf.text(t.visitor_name, pageW / 2, y, { align: 'center' })
+      y += 6
+
+      if (t.notes) {
+        pdf.setFontSize(8)
+        pdf.setTextColor(153, 153, 153)
+        pdf.text(t.notes, pageW / 2, y, { align: 'center' })
+        y += 5
+      }
+
+      if (t.status !== 'unused') {
+        pdf.setFontSize(7)
+        pdf.setTextColor(t.status === 'checked_in' ? 34 : 217, t.status === 'checked_in' ? 197 : 74, t.status === 'checked_in' ? 94 : 74)
+        pdf.text(t.status.replace('_', ' '), pageW / 2, y, { align: 'center' })
+        y += 5
+      }
+
+      pdf.addImage(qrDataUrls[i], 'PNG', (pageW - qrSize) / 2, y, qrSize, qrSize)
+    }
+
+    pdf.save(`all-tickets-${Date.now()}.pdf`)
+    setPdfLoading(false)
+  }
+
   const statusBadge = (s: string) => {
     switch (s) {
       case 'unused': return 'bg-green-50 text-green-600 border-green-200'
@@ -166,7 +240,18 @@ export default function TicketsPage() {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-lg font-semibold text-gray-800">All Tickets</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold text-gray-800">All Tickets</h2>
+        {isMaster && tickets.length > 0 && (
+          <button
+            onClick={handleDownloadAllPDF}
+            disabled={pdfLoading}
+            className="text-xs bg-primary text-white px-3 py-1.5 rounded-lg hover:bg-primary-dark transition-colors disabled:opacity-50"
+          >
+            {pdfLoading ? 'Generating...' : 'Download PDF'}
+          </button>
+        )}
+      </div>
 
       {message && (
         <div className={`text-sm p-3 rounded-lg border ${
