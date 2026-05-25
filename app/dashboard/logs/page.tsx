@@ -183,10 +183,10 @@ export default function LogsPage() {
               {log.visitor_name && (
                 <p className="text-gray-500 mt-1">Visitor: {log.visitor_name}</p>
               )}
-              {log.old_value && (
+              {log.old_value != null && (
                 <p className="text-gray-400 mt-0.5">From: {JSON.stringify(log.old_value)}</p>
               )}
-              {log.new_value && (
+              {log.new_value != null && (
                 <p className="text-gray-400">To: {JSON.stringify(log.new_value)}</p>
               )}
               {log.ticket_id && (

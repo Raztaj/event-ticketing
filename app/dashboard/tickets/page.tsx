@@ -393,14 +393,16 @@ export default function TicketsPage() {
                 <span className="text-xs text-gray-400">
                   {new Date(t.created_at).toLocaleDateString()}
                 </span>
-                {isMaster && t.status === 'unused' && (
+                {isMaster && (
                   <>
-                    <button
-                      onClick={() => handleRevoke(t.id)}
-                      className="text-xs text-red-400 hover:text-red-600"
-                    >
-                      Revoke
-                    </button>
+                    {t.status === 'unused' && (
+                      <button
+                        onClick={() => handleRevoke(t.id)}
+                        className="text-xs text-red-400 hover:text-red-600"
+                      >
+                        Revoke
+                      </button>
+                    )}
                     <button
                       onClick={() => handleDelete(t.id)}
                       className="text-xs text-red-600 hover:text-red-800 font-medium ml-2"
