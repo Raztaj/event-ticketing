@@ -10,6 +10,7 @@ type Ticket = {
   visitor_name: string
   status: 'unused' | 'checked_in' | 'revoked'
   notes: string
+  is_vip: boolean
   created_by: string
   checked_in_by: string | null
   checked_in_at: string | null
@@ -155,6 +156,57 @@ export default function TicketsPage() {
 
     setMessage('Ticket deleted')
     loadTickets()
+  }
+
+  const handleDownloadTicket = async (t: Ticket) => {
+    let logoDataUrl = ''
+    try {
+      const resp = await fetch('/logo.svg')
+      const svg = await resp.text()
+      const m = svg.match(/xlink:href="([^"]+)"/)
+      if (m) logoDataUrl = m[1]
+    } catch {}
+
+    const qrDataUrl = await QRCode.toDataURL(t.id, { width: 200, margin: 1, color: { dark: '#D94A4A', light: '#FFFFFF' } })
+
+    const { default: jsPDF } = await import('jspdf')
+    const pdf = new jsPDF('portrait', 'mm', 'a6')
+    const pageW = pdf.internal.pageSize.getWidth()
+    const qrSize = 50
+    let y = 15
+
+    if (logoDataUrl) {
+      pdf.addImage(logoDataUrl, 'JPEG', (pageW - 30) / 2, y, 30, 30)
+      y += 34
+    }
+
+    pdf.setFontSize(9)
+    pdf.setTextColor(153, 153, 153)
+    pdf.text(t.ticket_code, pageW / 2, y, { align: 'center' })
+    y += 5
+
+    pdf.setFontSize(11)
+    pdf.setTextColor(0, 0, 0)
+    pdf.text(t.visitor_name, pageW / 2, y, { align: 'center' })
+    y += 5
+
+    if (t.is_vip) {
+      pdf.setFontSize(8)
+      pdf.setTextColor(217, 74, 74)
+      pdf.text('VIP', pageW / 2, y, { align: 'center' })
+      y += 5
+    }
+
+    if (t.notes) {
+      pdf.setFontSize(8)
+      pdf.setTextColor(153, 153, 153)
+      pdf.text(t.notes, pageW / 2, y, { align: 'center' })
+      y += 4
+    }
+
+    pdf.addImage(qrDataUrl, 'PNG', (pageW - qrSize) / 2, y, qrSize, qrSize)
+
+    pdf.save(`${t.ticket_code}-${t.visitor_name.replace(/\s+/g, '_')}.pdf`)
   }
 
   const handleDownloadAllPDF = async () => {
@@ -313,7 +365,12 @@ export default function TicketsPage() {
                     </div>
                   ) : (
                     <div className="flex items-center gap-2">
-                      <span className="font-medium text-gray-800 text-sm">{t.visitor_name}</span>
+                      <span className="font-medium text-gray-800 text-sm">
+                        {t.visitor_name}
+                        {t.is_vip && (
+                          <span className="ml-1 text-[10px] bg-yellow-400 text-yellow-900 px-1 py-0.5 rounded-full font-bold align-middle">VIP</span>
+                        )}
+                      </span>
                       {isMaster && t.status === 'unused' && (
                         <button
                           onClick={() => { setEditingId(t.id); setEditName(t.visitor_name) }}
@@ -352,6 +409,12 @@ export default function TicketsPage() {
                     </button>
                   </>
                 )}
+                <button
+                  onClick={() => handleDownloadTicket(t)}
+                  className="text-xs text-primary hover:underline ml-auto"
+                >
+                  Download
+                </button>
               </div>
             </div>
           ))}

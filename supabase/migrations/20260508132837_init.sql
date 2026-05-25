@@ -25,6 +25,7 @@ CREATE TABLE tickets (
   visitor_name TEXT NOT NULL,
   status ticket_status DEFAULT 'unused',
   notes TEXT DEFAULT '',
+  is_vip BOOLEAN DEFAULT false,
   created_by UUID REFERENCES users(id) NOT NULL,
   checked_in_by UUID REFERENCES users(id),
   checked_in_at TIMESTAMPTZ,
@@ -70,9 +71,11 @@ BEGIN
 END;
 $$;
 
--- 5. FUNCTION: atomic check-in (race-condition-safe)
+-- 5. FUNCTION: atomic check-in (race-condition-safe, bypasses RLS)
 CREATE OR REPLACE FUNCTION check_in_ticket(p_ticket_id UUID, p_user_id UUID)
 RETURNS JSONB
+SECURITY DEFINER
+SET search_path = public
 LANGUAGE plpgsql
 AS $$
 DECLARE
@@ -107,7 +110,8 @@ BEGIN
     'status', 'valid',
     'message', 'Check-in successful',
     'visitor_name', v_ticket.visitor_name,
-    'ticket_code', v_ticket.ticket_code
+    'ticket_code', v_ticket.ticket_code,
+    'is_vip', v_ticket.is_vip
   );
 END;
 $$;

@@ -7,6 +7,7 @@ import QRCode from 'qrcode'
 export default function CreateTicketPage() {
   const [visitorName, setVisitorName] = useState('')
   const [notes, setNotes] = useState('')
+  const [isVip, setIsVip] = useState(false)
   const [loading, setLoading] = useState(false)
   const [ticket, setTicket] = useState<{
     id: string
@@ -48,6 +49,7 @@ export default function CreateTicketPage() {
         ticket_code: ticketCode,
         visitor_name: name,
         notes,
+        is_vip: isVip,
         created_by: user.id,
       })
       .select('id, ticket_code, visitor_name')
@@ -209,7 +211,7 @@ export default function CreateTicketPage() {
         </div>
 
         <button
-          onClick={() => { setTicket(null); setQrDataUrl(''); setVisitorName(''); setNotes('') }}
+          onClick={() => { setTicket(null); setQrDataUrl(''); setVisitorName(''); setNotes(''); setIsVip(false) }}
           className="w-full text-sm text-gray-400 hover:text-gray-600 transition-colors py-2"
         >
           Create Another Ticket
@@ -252,9 +254,19 @@ export default function CreateTicketPage() {
             value={notes}
             onChange={e => setNotes(e.target.value)}
             className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary text-sm"
-            placeholder="e.g. VIP, Guest of honor"
+            placeholder="e.g. Guest of honor"
           />
         </div>
+
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={isVip}
+            onChange={e => setIsVip(e.target.checked)}
+            className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary/30"
+          />
+          <span className="text-sm text-gray-700 font-medium">VIP Ticket</span>
+        </label>
 
         <button
           type="submit"

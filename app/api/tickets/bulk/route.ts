@@ -18,7 +18,7 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json()
-    const entries: { visitor_name: string; notes?: string }[] = body.tickets
+    const entries: { visitor_name: string; notes?: string; is_vip?: boolean }[] = body.tickets
 
     if (!Array.isArray(entries) || entries.length === 0) {
       return NextResponse.json({ error: 'No tickets provided' }, { status: 400 })
@@ -49,6 +49,7 @@ export async function POST(req: Request) {
           ticket_code: ticketCode,
           visitor_name: name,
           notes: entry.notes || '',
+          is_vip: entry.is_vip || false,
           created_by: user.id,
         })
         .select('id, ticket_code, visitor_name')

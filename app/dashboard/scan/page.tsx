@@ -8,10 +8,12 @@ type ScanResult = {
   message: string
   visitor_name?: string
   ticket_code?: string
+  is_vip?: boolean
 }
 
 export default function ScanPage() {
   const [scanning, setScanning] = useState(false)
+  const [verifying, setVerifying] = useState(false)
   const [result, setResult] = useState<ScanResult | null>(null)
   const [cameraError, setCameraError] = useState('')
   const scannerRef = useRef<HTMLDivElement>(null)
@@ -54,9 +56,12 @@ export default function ScanPage() {
   }
 
   const verifyTicket = async (ticketId: string) => {
+    setVerifying(true)
+
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
       setResult({ status: 'error', message: 'Session expired' })
+      setVerifying(false)
       return
     }
 
@@ -79,6 +84,8 @@ export default function ScanPage() {
     } else {
       setResult(data)
     }
+
+    setVerifying(false)
   }
 
   useEffect(() => {
@@ -135,6 +142,13 @@ export default function ScanPage() {
         </div>
       )}
 
+      {verifying && (
+        <div className="bg-white rounded-xl p-6 border border-primary-light shadow-sm text-center">
+          <div className="animate-pulse text-4xl text-primary mb-3">◈</div>
+          <p className="text-sm text-gray-500">Verifying ticket...</p>
+        </div>
+      )}
+
       {result && (
         <div className={`rounded-xl border-2 shadow-sm text-center ${statusColor(result.status)}`}>
           <div className="py-8 px-6">
@@ -142,7 +156,12 @@ export default function ScanPage() {
             <p className="text-xl font-bold capitalize mb-1">{result.status.replace('_', ' ')}</p>
             <p className="text-sm opacity-80">{result.message}</p>
             {result.visitor_name && (
-              <p className="text-base font-semibold mt-3">{result.visitor_name}</p>
+              <p className="text-base font-semibold mt-3">
+                {result.visitor_name}
+                {result.is_vip && (
+                  <span className="ml-1.5 text-xs bg-yellow-400 text-yellow-900 px-1.5 py-0.5 rounded-full font-bold align-middle">VIP</span>
+                )}
+              </p>
             )}
             {result.ticket_code && (
               <p className="text-xs opacity-60 mt-0.5">{result.ticket_code}</p>

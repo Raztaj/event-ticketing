@@ -3,7 +3,7 @@
 import { useState, useRef } from 'react'
 import * as XLSX from 'xlsx'
 
-type Row = { visitor_name: string; notes: string }
+type Row = { visitor_name: string; notes: string; is_vip: boolean }
 
 export default function BulkImportPage() {
   const [rows, setRows] = useState<Row[]>([])
@@ -25,6 +25,7 @@ export default function BulkImportPage() {
       const parsed: Row[] = json.map((r: any) => ({
         visitor_name: String(r.visitor_name || r.Name || r.name || '').trim(),
         notes: String(r.notes || r.Notes || r.NOTES || '').trim(),
+        is_vip: !!(r.is_vip || r.isVIP || r.IsVIP || r.vip || r.VIP || r.Vip),
       })).filter(r => r.visitor_name)
       setRows(parsed)
       setResults(null)
@@ -36,9 +37,9 @@ export default function BulkImportPage() {
   const downloadExample = () => {
     const wb = XLSX.utils.book_new()
     const data = [
-      { visitor_name: 'Ahmed Mohamed', notes: 'VIP' },
-      { visitor_name: 'Sara Ali', notes: '' },
-      { visitor_name: 'Omar Hassan', notes: 'Guest of honor' },
+      { visitor_name: 'Ahmed Mohamed', notes: 'VIP Guest', is_vip: true },
+      { visitor_name: 'Sara Ali', notes: '', is_vip: false },
+      { visitor_name: 'Omar Hassan', notes: 'Speaker', is_vip: true },
     ]
     const ws = XLSX.utils.json_to_sheet(data)
     XLSX.utils.book_append_sheet(wb, ws, 'Tickets')
@@ -115,6 +116,7 @@ export default function BulkImportPage() {
                   <tr className="bg-gray-50 text-gray-500">
                     <th className="text-left p-2">#</th>
                     <th className="text-left p-2">Name</th>
+                    <th className="text-left p-2">VIP</th>
                     <th className="text-left p-2">Notes</th>
                   </tr>
                 </thead>
@@ -123,6 +125,7 @@ export default function BulkImportPage() {
                     <tr key={i} className="border-t border-gray-50">
                       <td className="p-2 text-gray-400">{i + 1}</td>
                       <td className="p-2 text-gray-800">{r.visitor_name}</td>
+                      <td className="p-2">{r.is_vip ? <span className="text-[10px] bg-yellow-400 text-yellow-900 px-1 py-0.5 rounded-full font-bold">VIP</span> : ''}</td>
                       <td className="p-2 text-gray-400">{r.notes}</td>
                     </tr>
                   ))}
