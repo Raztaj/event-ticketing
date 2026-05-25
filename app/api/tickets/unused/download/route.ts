@@ -42,9 +42,9 @@ export async function GET() {
         'Content-Disposition': `attachment; filename="unused-tickets-${Date.now()}.csv"`,
       },
     })
-  } catch (err: any) {
+  } catch (err) {
     return NextResponse.json(
-      { error: err.message || 'Internal server error' },
+      { error: err instanceof Error ? err.message : 'Internal server error' },
       { status: 500 }
     )
   }

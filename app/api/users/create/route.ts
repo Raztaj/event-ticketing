@@ -60,9 +60,9 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({ success: true, user: { id: authUser.user.id, email, name, role } })
-  } catch (err: any) {
+  } catch (err) {
     return NextResponse.json(
-      { error: err.message || 'Internal server error' },
+      { error: err instanceof Error ? err.message : 'Internal server error' },
       { status: 500 }
     )
   }

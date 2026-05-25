@@ -7,7 +7,7 @@ type Row = { visitor_name: string; notes: string; is_vip: boolean }
 
 export default function BulkImportPage() {
   const [rows, setRows] = useState<Row[]>([])
-  const [results, setResults] = useState<{ success: number; errors: number; items: any[] } | null>(null)
+  const [results, setResults] = useState<{ success: number; errors: number; items: { visitor_name: string; ticket_code: string; error?: string }[] } | null>(null)
   const [uploading, setUploading] = useState(false)
   const [message, setMessage] = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
@@ -21,8 +21,8 @@ export default function BulkImportPage() {
       const data = new Uint8Array(ev.target?.result as ArrayBuffer)
       const workbook = XLSX.read(data, { type: 'array' })
       const sheet = workbook.Sheets[workbook.SheetNames[0]]
-      const json: any[] = XLSX.utils.sheet_to_json(sheet)
-      const parsed: Row[] = json.map((r: any) => ({
+      const json = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet)
+      const parsed: Row[] = json.map(r => ({
         visitor_name: String(r.visitor_name || r.Name || r.name || '').trim(),
         notes: String(r.notes || r.Notes || r.NOTES || '').trim(),
         is_vip: !!(r.is_vip || r.isVIP || r.IsVIP || r.vip || r.VIP || r.Vip),
@@ -69,8 +69,8 @@ export default function BulkImportPage() {
         setResults(data)
         if (data.errors === 0) setRows([])
       }
-    } catch (err: any) {
-      setMessage(`Error: ${err.message}`)
+    } catch (err) {
+      setMessage(`Error: ${err instanceof Error ? err.message : 'Unknown error'}`)
     }
     setUploading(false)
   }
@@ -151,7 +151,7 @@ export default function BulkImportPage() {
           </p>
           {results.errors > 0 && (
             <div className="max-h-48 overflow-y-auto space-y-1">
-              {results.items.filter((i: any) => i.error).map((item: any, i: number) => (
+              {results.items.filter(i => i.error).map((item, i) => (
                 <p key={i} className="text-xs text-red-500">
                   {item.visitor_name || '(empty)'}: {item.error}
                 </p>

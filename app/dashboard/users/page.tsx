@@ -27,7 +27,7 @@ export default function UsersPage() {
   const [editRole, setEditRole] = useState('')
   const supabase = createClient()
 
-  const loadUsers = async () => {
+  const fetchUsers = async () => {
     const { data } = await supabase
       .from('users')
       .select('*')
@@ -38,7 +38,8 @@ export default function UsersPage() {
   }
 
   useEffect(() => {
-    loadUsers()
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchUsers()
   }, [])
 
   const handleCreateUser = async (e: React.FormEvent) => {
@@ -72,7 +73,7 @@ export default function UsersPage() {
     setNewName('')
     setNewRole('staff_admin')
     setSubmitting(false)
-    loadUsers()
+    fetchUsers()
   }
 
   const handleToggleActive = async (user: User) => {
@@ -87,7 +88,7 @@ export default function UsersPage() {
     }
 
     setMessage(`${user.name} ${user.is_active ? 'disabled' : 'enabled'}`)
-    loadUsers()
+    fetchUsers()
   }
 
   const startEditing = (u: User) => {
@@ -116,7 +117,7 @@ export default function UsersPage() {
     }
     setMessage('User updated')
     setEditingId(null)
-    loadUsers()
+    fetchUsers()
   }
 
   return (

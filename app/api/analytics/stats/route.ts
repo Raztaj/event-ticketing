@@ -37,7 +37,7 @@ export async function GET() {
     const daily = Object.entries(dayMap).map(([date, count]) => ({ date, count }))
 
     return NextResponse.json({ daily })
-  } catch (err: any) {
+  } catch (err) {
     return NextResponse.json({ error: err.message }, { status: 500 })
   }
 }

@@ -55,6 +55,7 @@ export default function TicketsPage() {
   }
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadTickets()
   }, [filter])
 
@@ -229,7 +230,6 @@ export default function TicketsPage() {
     const pageSize = 'a6'
     const qrSize = 50
     const logoSize = 30
-    const marginX = 10
 
     const qrPromises = tickets.map(t =>
       QRCode.toDataURL(t.id, { width: 200, margin: 1, color: { dark: '#D94A4A', light: '#FFFFFF' } })

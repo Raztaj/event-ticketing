@@ -9,8 +9,8 @@ type Log = {
   action_type: string
   ticket_id: string | null
   visitor_name: string | null
-  old_value: any
-  new_value: any
+  old_value: unknown
+  new_value: unknown
   created_at: string
 }
 
@@ -24,7 +24,7 @@ export default function LogsPage() {
   const [message, setMessage] = useState('')
   const supabase = createClient()
 
-  const loadLogs = async () => {
+  const fetchLogs = async () => {
     const { data: { user } } = await supabase.auth.getUser()
     if (user) {
       const { data: profile } = await supabase
@@ -51,7 +51,8 @@ export default function LogsPage() {
   }
 
   useEffect(() => {
-    loadLogs()
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchLogs()
   }, [actionFilter])
 
   const handleDeleteLogs = async () => {
@@ -67,7 +68,7 @@ export default function LogsPage() {
       setMessage(`Error: ${error.message}`)
     } else {
       setMessage('All activity logs deleted')
-      loadLogs()
+      fetchLogs()
     }
 
     setDeleting(false)

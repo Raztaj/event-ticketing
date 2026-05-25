@@ -17,6 +17,7 @@ export default function ScanPage() {
   const [result, setResult] = useState<ScanResult | null>(null)
   const [cameraError, setCameraError] = useState('')
   const scannerRef = useRef<HTMLDivElement>(null)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const html5QrCodeRef = useRef<any>(null)
   const supabase = createClient()
 
@@ -49,8 +50,8 @@ export default function ScanPage() {
         },
         () => {}
       )
-    } catch (err: any) {
-      setCameraError(err?.message || 'Camera access denied or unavailable')
+    } catch (err) {
+      setCameraError(err instanceof Error ? err.message : 'Camera access denied or unavailable')
       setScanning(false)
     }
   }
